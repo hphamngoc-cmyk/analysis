@@ -1097,9 +1097,6 @@ export default function App() {
         actualAOA.push(row);
       });
 
-      const wsActual = XLSX.utils.aoa_to_sheet(actualAOA);
-      XLSX.utils.book_append_sheet(wb, wsActual, "Thực tế");
-
       // Sheet 2: KẾ HOẠCH
       const budgetAOA = [
         ["HỆ THỐNG PHÂN TÍCH TÀI CHÍNH - BIẾN ĐỘNG CHI TIÊU & EBITDA"],
@@ -1121,8 +1118,20 @@ export default function App() {
         budgetAOA.push(row);
       });
 
-      const wsBudget = XLSX.utils.aoa_to_sheet(budgetAOA);
-      XLSX.utils.book_append_sheet(wb, wsBudget, "Kế hoạch");
+      // Append worksheets: depending on active input type, the corresponding sheet is placed FIRST to open by default in Excel
+      if (inputGridType === "budget") {
+        const wsBudget = XLSX.utils.aoa_to_sheet(budgetAOA);
+        XLSX.utils.book_append_sheet(wb, wsBudget, "Kế hoạch");
+
+        const wsActual = XLSX.utils.aoa_to_sheet(actualAOA);
+        XLSX.utils.book_append_sheet(wb, wsActual, "Thực tế");
+      } else {
+        const wsActual = XLSX.utils.aoa_to_sheet(actualAOA);
+        XLSX.utils.book_append_sheet(wb, wsActual, "Thực tế");
+
+        const wsBudget = XLSX.utils.aoa_to_sheet(budgetAOA);
+        XLSX.utils.book_append_sheet(wb, wsBudget, "Kế hoạch");
+      }
 
       XLSX.writeFile(wb, `Template_Hach_Toan_${selectedYear}_${currentCenter?.name.replace(/\s+/g, "_")}.xlsx`);
       showToast("Tải mẫu Excel nhập liệu thành công! Bạn có thể điền thông tin và tải lên lại.", "success");
@@ -1146,11 +1155,30 @@ export default function App() {
         const newDraftGrid = { ...draftGrid };
         let pointsImported = 0;
 
+        const firstSheetName = workbook.SheetNames[0];
+        const isSingleSheet = workbook.SheetNames.length === 1;
+
         workbook.SheetNames.forEach((sheetName) => {
-          const isActualSheet = sheetName.includes("Thực tế") || sheetName.toLowerCase().includes("actual") || sheetName.toLowerCase().includes("thuc te");
-          const isBudgetSheet = sheetName.includes("Kế hoạch") || sheetName.toLowerCase().includes("budget") || sheetName.toLowerCase().includes("ke hoach");
-          
-          if (!isActualSheet && !isBudgetSheet) return;
+          const normNFC = sheetName.normalize("NFC").toLowerCase();
+          const normNFD = sheetName.normalize("NFD").toLowerCase();
+
+          const isActualSheet = normNFC.includes("thực tế") || normNFC.includes("thuc te") || normNFC.includes("actual") ||
+                                normNFD.includes("thực tế") || normNFD.includes("thuc te") || normNFD.includes("actual");
+          const isBudgetSheet = normNFC.includes("kế hoạch") || normNFC.includes("ke hoach") || normNFC.includes("budget") || normNFC.includes("plan") ||
+                                normNFD.includes("kế hoạch") || normNFD.includes("ke hoach") || normNFD.includes("budget") || normNFD.includes("plan");
+
+          // Determine target field(s) for this sheet
+          const targetFields: ("actual" | "budget")[] = [];
+
+          if (isActualSheet) targetFields.push("actual");
+          if (isBudgetSheet) targetFields.push("budget");
+
+          // Fallback: If sheet name is not explicitly recognized, map it directly to the user's active entry tab
+          if (targetFields.length === 0 && (isSingleSheet || sheetName === firstSheetName)) {
+            targetFields.push(inputGridType);
+          }
+
+          if (targetFields.length === 0) return;
 
           const worksheet = workbook.Sheets[sheetName];
           const range = XLSX.utils.decode_range(worksheet["!ref"] || "");
@@ -1200,13 +1228,10 @@ export default function App() {
                 newDraftGrid[indId][m] = { actual: "0", budget: "0" };
               }
 
-              if (isActualSheet) {
-                newDraftGrid[indId][m].actual = String(safeVal);
+              targetFields.forEach((field) => {
+                newDraftGrid[indId][m][field] = String(safeVal);
                 pointsImported++;
-              } else if (isBudgetSheet) {
-                newDraftGrid[indId][m].budget = String(safeVal);
-                pointsImported++;
-              }
+              });
             }
           }
         });
