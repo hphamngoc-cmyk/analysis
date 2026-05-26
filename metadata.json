@@ -1,0 +1,6 @@
+{
+  "name": "Finance Analysis Pro",
+  "description": "Ứng dụng phân tích số liệu hoạt động tài chính: doanh thu, chi phí, lợi nhuận và EBITDA theo từng trung tâm kinh doanh tích hợp trợ lý phân tích AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
