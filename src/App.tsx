@@ -482,21 +482,7 @@ export default function App() {
       isCategory?: boolean;
     }> = [];
 
-    // Individual Indicators
-    computedTableRows.forEach((row) => {
-      if (isFluctuated(row.variancePercent)) {
-        list.push({
-          id: row.id,
-          name: row.name,
-          variancePercent: row.variancePercent,
-          variance: row.variance,
-          typeString: row.type === "revenue" ? "Doanh thu" : "Chi phí",
-          isCategory: false
-        });
-      }
-    });
-
-    // Parent Categories (exceeding 10% fluctuation)
+    // 1. I. DOANH THU
     const revPct = getVariancePercent(totals.revenue.actualYTD, totals.revenue.budgetYTD);
     if (isFluctuated(revPct)) {
       list.push({
@@ -509,6 +495,21 @@ export default function App() {
       });
     }
 
+    // 2. Revenue Detail Items
+    computedTableRows.forEach((row) => {
+      if (row.type === "revenue" && isFluctuated(row.variancePercent)) {
+        list.push({
+          id: row.id,
+          name: row.name,
+          variancePercent: row.variancePercent,
+          variance: row.variance,
+          typeString: "Doanh thu",
+          isCategory: false
+        });
+      }
+    });
+
+    // 3. II. CHI PHÍ
     const costPct = getVariancePercent(totals.totalCost.actualYTD, totals.totalCost.budgetYTD);
     if (isFluctuated(costPct)) {
       list.push({
@@ -521,6 +522,7 @@ export default function App() {
       });
     }
 
+    // 4. 1. CHI PHÍ CỐ ĐỊNH
     const fixedPct = getVariancePercent(totals.fixedCost.actualYTD, totals.fixedCost.budgetYTD);
     if (isFluctuated(fixedPct)) {
       list.push({
@@ -533,6 +535,21 @@ export default function App() {
       });
     }
 
+    // 5. Fixed Cost Detail Items
+    computedTableRows.forEach((row) => {
+      if (row.type === "fixed_cost" && isFluctuated(row.variancePercent)) {
+        list.push({
+          id: row.id,
+          name: row.name,
+          variancePercent: row.variancePercent,
+          variance: row.variance,
+          typeString: "Chi phí",
+          isCategory: false
+        });
+      }
+    });
+
+    // 6. 2. CHI PHÍ BIẾN ĐỔI
     const varPct = getVariancePercent(totals.variableCost.actualYTD, totals.variableCost.budgetYTD);
     if (isFluctuated(varPct)) {
       list.push({
@@ -545,6 +562,21 @@ export default function App() {
       });
     }
 
+    // 7. Variable Cost Detail Items
+    computedTableRows.forEach((row) => {
+      if (row.type === "variable_cost" && isFluctuated(row.variancePercent)) {
+        list.push({
+          id: row.id,
+          name: row.name,
+          variancePercent: row.variancePercent,
+          variance: row.variance,
+          typeString: "Chi phí",
+          isCategory: false
+        });
+      }
+    });
+
+    // 8. III. LỢI NHUẬN RÒNG
     const profitPct = getVariancePercent(totals.profit.actualYTD, totals.profit.budgetYTD);
     if (isFluctuated(profitPct)) {
       list.push({
@@ -557,6 +589,7 @@ export default function App() {
       });
     }
 
+    // 9. IV. EBITDA
     const ebitdaPct = getVariancePercent(totals.ebitda.actualYTD, totals.ebitda.budgetYTD);
     if (isFluctuated(ebitdaPct)) {
       list.push({
@@ -1423,20 +1456,7 @@ export default function App() {
       isCategory?: boolean;
     }> = [];
 
-    tableRows.forEach((row) => {
-      if (isFluctuated(row.variancePercent)) {
-        fluctuatedList.push({
-          id: row.id,
-          name: row.name,
-          variancePercent: row.variancePercent,
-          variance: row.variance,
-          typeString: row.type === "revenue" ? "Doanh thu" : "Chi phí",
-          isCategory: false,
-        });
-      }
-    });
-
-    // Parent category variances
+    // 1. I. DOANH THU
     const revPct = getVariancePercent(rev.actualYTD, rev.budgetYTD);
     if (isFluctuated(revPct)) {
       fluctuatedList.push({
@@ -1449,6 +1469,21 @@ export default function App() {
       });
     }
 
+    // 2. Revenue Detail Items
+    tableRows.forEach((row) => {
+      if (row.type === "revenue" && isFluctuated(row.variancePercent)) {
+        fluctuatedList.push({
+          id: row.id,
+          name: row.name,
+          variancePercent: row.variancePercent,
+          variance: row.variance,
+          typeString: "Doanh thu",
+          isCategory: false,
+        });
+      }
+    });
+
+    // 3. II. CHI PHÍ
     const costPct = getVariancePercent(totalCost.actualYTD, totalCost.budgetYTD);
     if (isFluctuated(costPct)) {
       fluctuatedList.push({
@@ -1461,6 +1496,7 @@ export default function App() {
       });
     }
 
+    // 4. 1. CHI PHÍ CỐ ĐỊNH
     const fixedPct = getVariancePercent(fixed.actualYTD, fixed.budgetYTD);
     if (isFluctuated(fixedPct)) {
       fluctuatedList.push({
@@ -1473,6 +1509,21 @@ export default function App() {
       });
     }
 
+    // 5. Fixed Cost Detail Items
+    tableRows.forEach((row) => {
+      if (row.type === "fixed_cost" && isFluctuated(row.variancePercent)) {
+        fluctuatedList.push({
+          id: row.id,
+          name: row.name,
+          variancePercent: row.variancePercent,
+          variance: row.variance,
+          typeString: "Chi phí",
+          isCategory: false,
+        });
+      }
+    });
+
+    // 6. 2. CHI PHÍ BIẾN ĐỔI
     const varPct = getVariancePercent(variable.actualYTD, variable.budgetYTD);
     if (isFluctuated(varPct)) {
       fluctuatedList.push({
@@ -1485,6 +1536,21 @@ export default function App() {
       });
     }
 
+    // 7. Variable Cost Detail Items
+    tableRows.forEach((row) => {
+      if (row.type === "variable_cost" && isFluctuated(row.variancePercent)) {
+        fluctuatedList.push({
+          id: row.id,
+          name: row.name,
+          variancePercent: row.variancePercent,
+          variance: row.variance,
+          typeString: "Chi phí",
+          isCategory: false,
+          });
+      }
+    });
+
+    // 8. III. LỢI NHUẬN RÒNG
     const profitPct = getVariancePercent(profit.actualYTD, profit.budgetYTD);
     if (isFluctuated(profitPct)) {
       fluctuatedList.push({
@@ -1497,6 +1563,7 @@ export default function App() {
       });
     }
 
+    // 9. IV. EBITDA
     const ebitdaPct = getVariancePercent(ebitda.actualYTD, ebitda.budgetYTD);
     if (isFluctuated(ebitdaPct)) {
       fluctuatedList.push({
@@ -1635,11 +1702,10 @@ export default function App() {
           const pctYTD = getVariancePercent(rowVals.actualYTD, rowVals.budgetYTD);
 
           // Customize variant colors based on performance
+          // All fluctuations exceeding the explanation threshold (>10% or <-10%) MUST be styled RED
           let varianceTextColor = "1E293B";
           if (Math.abs(pctYTD) > 10) {
-            varianceTextColor = isCostColor
-              ? (pctYTD > 0 ? "B91C1C" : "047857") // Red for over budget cost, Green for saved
-              : (pctYTD < 0 ? "B91C1C" : "047857"); // Red for missed revenue, Green for surplus
+            varianceTextColor = "B91C1C"; // All fluctuations requiring explanation must be RED
           }
 
           const cellBorder = { pt: 0.5, color: borderCell };
@@ -1810,11 +1876,72 @@ export default function App() {
             fontFace: fontMain,
           });
         } else {
-          // Pagination for Commentary - Display all fluctuated items paginated (8 items per slide in a tight 4x2 grid)
-          const itemsPerPage = 8;
-          const totalCommPages = Math.ceil(fluctuatedList.length / itemsPerPage);
+          // Dynamic layout for Commentary based on explanation word length
+          // Calculates vertical space needed for each card so we fit 4, 6, or 8 items elegantly per slide without clipping/overlaps.
+          const itemHeights = fluctuatedList.map((item) => {
+            const cKey = `${center.id}_${selectedYear}_${selectedMonth}_${item.id}`;
+            const cTextText = explanations[cKey] || "Chưa cập nhật nội dung giải trình nội bộ.";
+            
+            // Estimate line height required based on characters count (with font size 8pt and double columns width ~4.35in)
+            const charCount = cTextText.length;
+            const newlineCount = (cTextText.match(/\n/g) || []).length;
+            const linesOfText = Math.max(1, Math.ceil(charCount / 65) + newlineCount);
+            const textHeight = linesOfText * 0.13;
+            
+            // Limit height so single card doesn't occupy entire slide illegally, and maintain beautiful minimum layout
+            const cardHeight = Math.min(3.4, Math.max(0.70, 0.45 + textHeight));
+            return {
+              item,
+              cKey,
+              cTextText,
+              cardHeight,
+            };
+          });
 
-          for (let pDef = 0; pDef < totalCommPages; pDef++) {
+          // Group into rows of max 2 items (left column, right column)
+          const rows: Array<{
+            items: typeof itemHeights;
+            rowHeight: number;
+          }> = [];
+
+          for (let i = 0; i < itemHeights.length; i += 2) {
+            const item1 = itemHeights[i];
+            const item2 = itemHeights[i + 1] || null;
+            const rHeight = Math.max(item1.cardHeight, item2 ? item2.cardHeight : 0);
+            
+            rows.push({
+              items: item2 ? [item1, item2] : [item1],
+              rowHeight: rHeight,
+            });
+          }
+
+          // Distribute rows into slides based on available height (y=1.0 to y=4.6 gives 3.6 inches max)
+          const slides: Array<typeof rows> = [];
+          let currentSlideRows: typeof rows = [];
+          let currentSlideYAccum = 0;
+          const maxAllowedY = 3.6;
+          const rowGap = 0.08;
+
+          rows.forEach((row) => {
+            const neededSpace = row.rowHeight + (currentSlideRows.length > 0 ? rowGap : 0);
+            if (currentSlideYAccum + neededSpace <= maxAllowedY) {
+              currentSlideRows.push(row);
+              currentSlideYAccum += neededSpace;
+            } else {
+              if (currentSlideRows.length > 0) {
+                slides.push(currentSlideRows);
+              }
+              currentSlideRows = [row];
+              currentSlideYAccum = row.rowHeight;
+            }
+          });
+          if (currentSlideRows.length > 0) {
+            slides.push(currentSlideRows);
+          }
+
+          const totalCommPages = slides.length;
+
+          slides.forEach((slideRows, pDef) => {
             const commentSlide = pptx.addSlide();
             commentSlide.background = { color: bgLight };
 
@@ -1843,70 +1970,71 @@ export default function App() {
               fontFace: fontMain,
             });
 
-            const currentItems = fluctuatedList.slice(pDef * itemsPerPage, (pDef + 1) * itemsPerPage);
-
             const cWidth = 4.35;
-            const cHeight = 0.85;
             const c1X = 0.5;
             const c2X = 5.15;
-            const cStartY = 1.0;
-            const cRowGap = 0.95;
+            let currentY = 1.0;
+            const innerRowGap = 0.08;
 
-            currentItems.forEach((item, index) => {
-              const col = index % 2;
-              const rowIndex = Math.floor(index / 2);
-              const cardX = col === 0 ? c1X : c2X;
-              const cardY = cStartY + rowIndex * cRowGap;
+            slideRows.forEach((row) => {
+              const cardH = row.rowHeight;
 
-              const cKey = `${center.id}_${selectedYear}_${selectedMonth}_${item.id}`;
-              const cTextText = explanations[cKey] || "Chưa cập nhật nội dung giải trình nội bộ.";
+              row.items.forEach((itemObj, colIndex) => {
+                const cardX = colIndex === 0 ? c1X : c2X;
+                const cardY = currentY;
 
-              // Card Background block
-              commentSlide.addText("", {
-                x: cardX,
-                y: cardY,
-                w: cWidth,
-                h: cHeight,
-                fill: { color: "FFFFFF" },
+                const { item, cKey, cTextText } = itemObj;
+
+                // Card Background block
+                commentSlide.addText("", {
+                  x: cardX,
+                  y: cardY,
+                  w: cWidth,
+                  h: cardH,
+                  fill: { color: "FFFFFF" },
+                });
+
+                // Card Header Text
+                commentSlide.addText(`${item.name} (${item.typeString})`, {
+                  x: cardX + 0.15,
+                  y: cardY + 0.08,
+                  w: cWidth - 0.3,
+                  h: 0.22,
+                  fontSize: 9.5,
+                  bold: true,
+                  color: "0F172A",
+                  fontFace: fontMain,
+                });
+
+                // Card metric pill - All elements in this list require explanation and thus should have a red warning color
+                const varianceColor = "DC2626";
+                commentSlide.addText(`Biến động YTD: ${item.variance >= 0 ? "+" : ""}${formatCurrency(item.variance)} | Tỷ lệ lệch: ${formatPercent(item.variancePercent)}`, {
+                  x: cardX + 0.15,
+                  y: cardY + 0.30,
+                  w: cWidth - 0.3,
+                  h: 0.22,
+                  fontSize: 8.5,
+                  bold: true,
+                  color: varianceColor,
+                  fontFace: fontMain,
+                });
+
+                // Card text commentary
+                commentSlide.addText(`Giải trình: ${cTextText}`, {
+                  x: cardX + 0.15,
+                  y: cardY + 0.54,
+                  w: cWidth - 0.3,
+                  h: cardH - 0.58,
+                  fontSize: 8.0,
+                  color: explanations[cKey] ? "475569" : "94A3B8",
+                  italic: !explanations[cKey],
+                  fontFace: fontMain,
+                  valign: "top",
+                });
               });
 
-              // Card Header Text
-              commentSlide.addText(`${item.name} (${item.typeString})`, {
-                x: cardX + 0.15,
-                y: cardY + 0.06,
-                w: cWidth - 0.3,
-                h: 0.20,
-                fontSize: 9.0,
-                bold: true,
-                color: "0F172A",
-                fontFace: fontMain,
-              });
-
-              // Card metric pill
-              const varianceColor = item.variancePercent >= 0 ? "059669" : "DC2626";
-              commentSlide.addText(`Biến động YTD: ${item.variance >= 0 ? "+" : ""}${formatCurrency(item.variance)} | Tỷ lệ lệch: ${formatPercent(item.variancePercent)}`, {
-                x: cardX + 0.15,
-                y: cardY + 0.26,
-                w: cWidth - 0.3,
-                h: 0.18,
-                fontSize: 8.0,
-                bold: true,
-                color: varianceColor,
-                fontFace: fontMain,
-              });
-
-              // Card text commentary
-              commentSlide.addText(`Giải trình: ${cTextText}`, {
-                x: cardX + 0.15,
-                y: cardY + 0.44,
-                w: cWidth - 0.3,
-                h: 0.38,
-                fontSize: 7.5,
-                color: explanations[cKey] ? "475569" : "94A3B8",
-                italic: !explanations[cKey],
-                fontFace: fontMain,
-                valign: "top",
-              });
+              // Advance currentY by modern dynamic row height and gap
+              currentY += cardH + innerRowGap;
             });
 
             // Clean bottom footnote/legend
@@ -1920,7 +2048,7 @@ export default function App() {
               italic: true,
               fontFace: fontMain,
             });
-          }
+          });
         }
       });
 
