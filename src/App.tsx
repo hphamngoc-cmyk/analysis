@@ -24,7 +24,8 @@ import {
   GripVertical,
   Download,
   Upload,
-  Presentation
+  Presentation,
+  Sparkles
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import pptxgen from "pptxgenjs";
@@ -86,10 +87,54 @@ export default function App() {
     categoryKey?: string;
   } | null>(null);
   const [popupCommentText, setPopupCommentText] = useState("");
+  const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
+
+  const handleGenerateAISuggestion = async () => {
+    if (!activePopupIndicator) return;
+
+    setIsGeneratingSuggestion(true);
+    try {
+      const centerName = centers.find((c) => c.id === selectedCenterId)?.name || "Trung tâm";
+      const response = await fetch("/api/suggest-explanation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          centerName,
+          year: selectedYear,
+          month: selectedMonth,
+          indicatorName: activePopupIndicator.name,
+          variance: activePopupIndicator.variance,
+          variancePercent: activePopupIndicator.pct,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Không thể kết nối đến máy chủ AI.");
+      }
+
+      const data = await response.json();
+      if (data.explanation) {
+        setPopupCommentText(data.explanation);
+        showToast("Đã cập nhật gợi ý giải trình từ AI!", "success");
+      } else if (data.error) {
+        showToast(data.error, "error");
+      }
+    } catch (err: any) {
+      console.error("AI suggestion error:", err);
+      showToast("Có lỗi xảy ra khi tạo gợi ý AI: " + err.message, "error");
+    } finally {
+      setIsGeneratingSuggestion(false);
+    }
+  };
 
   // Drag and drop state
   const [draggedIndicatorId, setDraggedIndicatorId] = useState<string | null>(null);
   const [dragOverIndicatorId, setDragOverIndicatorId] = useState<string | null>(null);
+
+  const [draggedCenterId, setDraggedCenterId] = useState<string | null>(null);
+  const [dragOverCenterId, setDragOverCenterId] = useState<string | null>(null);
 
   const handleIndicatorDragAndDrop = (draggedId: string, targetId: string) => {
     if (draggedId === targetId) return;
@@ -119,6 +164,31 @@ export default function App() {
     setIndicators(updatedIndicators);
     handleSaveToLocalStorage(centers, years, updatedIndicators, financialData);
     showToast("Đã thay đổi thứ tự vị trí hiển thị thành công!", "success");
+  };
+
+  const handleCenterDragAndDrop = (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+
+    const draggedIndex = centers.findIndex((c) => c.id === draggedId);
+    const targetIndex = centers.findIndex((c) => c.id === targetId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const draggedCenter = centers[draggedIndex];
+    const updatedCenters = [...centers];
+
+    // Remove dragged item
+    updatedCenters.splice(draggedIndex, 1);
+
+    // Find new position
+    const targetNewIndex = updatedCenters.findIndex((c) => c.id === targetId);
+
+    // Insert
+    updatedCenters.splice(targetNewIndex, 0, draggedCenter);
+
+    setCenters(updatedCenters);
+    handleSaveToLocalStorage(updatedCenters, years, indicators, financialData, explanations);
+    showToast("Đã thay đổi thứ tự vị trí trưng bày của các trung tâm thành công!", "success");
   };
 
   // Helpers for formatting percentage & checking fluctuation (> 10% or < -10%)
@@ -2059,17 +2129,55 @@ export default function App() {
               <div className="flex space-x-4">
                 {centers.map((c) => {
                   const isActive = selectedCenterId === c.id;
+                  const isDragging = draggedCenterId === c.id;
+                  const isDragOver = dragOverCenterId === c.id;
                   return (
                     <button
                       key={c.id}
                       onClick={() => setSelectedCenterId(c.id)}
-                      className={`relative py-1 px-3 text-xs font-bold transition-all cursor-pointer ${
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", c.id);
+                        setDraggedCenterId(c.id);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (draggedCenterId && draggedCenterId !== c.id) {
+                          setDragOverCenterId(c.id);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverCenterId === c.id) {
+                          setDragOverCenterId(null);
+                        }
+                      }}
+                      onDragEnd={() => {
+                        setDraggedCenterId(null);
+                        setDragOverCenterId(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const draggedId = e.dataTransfer.getData("text/plain") || draggedCenterId;
+                        if (draggedId) {
+                          handleCenterDragAndDrop(draggedId, c.id);
+                        }
+                        setDraggedCenterId(null);
+                        setDragOverCenterId(null);
+                      }}
+                      className={`relative py-1 px-3 text-xs font-bold transition-all cursor-grab active:cursor-grabbing select-none ${
                         isActive
                           ? "text-blue-600 font-extrabold"
                           : "text-slate-500 hover:text-slate-800"
+                      } ${isDragging ? "opacity-30 scale-95" : ""} ${
+                        isDragOver ? "bg-blue-50/80 ring-2 ring-blue-300 ring-dashed rounded-md scale-105" : "hover:bg-slate-100/50 rounded"
                       }`}
+                      title="Kéo thả để sắp xếp thứ tự Trung tâm"
                     >
-                      {c.name}
+                      <span className="flex items-center space-x-1">
+                        <span className="opacity-0 hover:opacity-100 md:group-hover:opacity-100 transition-opacity text-slate-400 font-normal cursor-grab">⋮⋮</span>
+                        <span>{c.name}</span>
+                      </span>
                       {isActive && (
                         <span className="absolute bottom-[-14px] left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
                       )}
@@ -3025,67 +3133,110 @@ export default function App() {
 
                 {/* Centers List */}
                 <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-1">
-                  {centers.map((c) => (
-                    <div key={c.id} className="py-2 flex items-center justify-between text-xs font-medium">
-                      {editingCenterId === c.id ? (
-                        <div className="flex items-center space-x-1.5 w-full">
-                          <input
-                            type="text"
-                            value={editingCenterName}
-                            onChange={(e) => setEditingCenterName(e.target.value)}
-                            className="flex-1 text-xs border border-blue-400 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateCenter(c.id)}
-                            className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded cursor-pointer"
-                            title="Xác nhận lưu"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingCenterId(null);
-                              setEditingCenterName("");
-                            }}
-                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded cursor-pointer"
-                            title="Hủy"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center space-x-2">
-                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{c.name}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
+                  {centers.map((c) => {
+                    const isDragging = draggedCenterId === c.id;
+                    const isDragOver = dragOverCenterId === c.id;
+                    return (
+                      <div
+                        key={c.id}
+                        draggable={editingCenterId !== c.id}
+                        onDragStart={(e) => {
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", c.id);
+                          setDraggedCenterId(c.id);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          if (draggedCenterId && draggedCenterId !== c.id) {
+                            setDragOverCenterId(c.id);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverCenterId === c.id) {
+                            setDragOverCenterId(null);
+                          }
+                        }}
+                        onDragEnd={() => {
+                          setDraggedCenterId(null);
+                          setDragOverCenterId(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const draggedId = e.dataTransfer.getData("text/plain") || draggedCenterId;
+                          if (draggedId) {
+                            handleCenterDragAndDrop(draggedId, c.id);
+                          }
+                          setDraggedCenterId(null);
+                          setDragOverCenterId(null);
+                        }}
+                        className={`py-2 flex items-center justify-between text-xs font-medium cursor-grab active:cursor-grabbing transition-all ${
+                          isDragging ? "opacity-30 scale-95" : ""
+                        } ${
+                          isDragOver ? "bg-blue-50/80 border-t-2 border-dashed border-blue-400 p-1 rounded" : "hover:bg-slate-50/50"
+                        }`}
+                        title="Kéo thả để sắp xếp lại thứ tự Trung tâm"
+                      >
+                        {editingCenterId === c.id ? (
+                          <div className="flex items-center space-x-1.5 w-full cursor-default" onDragStart={(e) => e.preventDefault()}>
+                            <input
+                              type="text"
+                              value={editingCenterName}
+                              onChange={(e) => setEditingCenterName(e.target.value)}
+                              className="flex-1 text-xs border border-blue-400 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCenter(c.id)}
+                              className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded cursor-pointer"
+                              title="Xác nhận lưu"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
-                                setEditingCenterId(c.id);
-                                setEditingCenterName(c.name);
+                                setEditingCenterId(null);
+                                setEditingCenterName("");
                               }}
-                              className="text-slate-400 hover:text-blue-500 transition-colors p-1 cursor-pointer"
-                              title="Sửa Trung tâm"
+                              className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded cursor-pointer"
+                              title="Hủy"
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteCenter(c.id, c.name)}
-                              className="text-slate-400 hover:text-rose-500 transition-colors p-1 cursor-pointer"
-                              title="Xóa Trung tâm"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                        ) : (
+                          <>
+                            <div className="flex items-center space-x-2">
+                              <Building2 className="w-3.5 h-3.5 text-slate-400 cursor-grab" />
+                              <span className="text-slate-400 font-mono text-[10px] select-none cursor-grab">⋮⋮</span>
+                              <span>{c.name}</span>
+                            </div>
+                            <div className="flex items-center space-x-1" onDragStart={(e) => e.preventDefault()}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCenterId(c.id);
+                                  setEditingCenterName(c.name);
+                                }}
+                                className="text-slate-400 hover:text-blue-500 transition-colors p-1 cursor-pointer"
+                                title="Sửa Trung tâm"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCenter(c.id, c.name)}
+                                className="text-slate-400 hover:text-rose-500 transition-colors p-1 cursor-pointer"
+                                title="Xóa Trung tâm"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -3432,12 +3583,28 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nguyên nhân chênh lệch</label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 uppercase">Nguyên nhân chênh lệch</label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAISuggestion}
+                    disabled={isGeneratingSuggestion}
+                    className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold transition-all border cursor-pointer shadow-xs ${
+                      isGeneratingSuggestion
+                        ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                        : "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600 border-blue-200 hover:from-blue-100 hover:to-indigo-100 hover:text-indigo-700"
+                    }`}
+                    title="Tìm kiếm giải trình tối ưu thông qua trợ lý AI"
+                  >
+                    <Sparkles className={`w-3 h-3 ${isGeneratingSuggestion ? "animate-spin text-blue-400" : "text-blue-500"}`} />
+                    <span>{isGeneratingSuggestion ? "AI đang lập giải trình..." : "Tự động phân tích bằng AI"}</span>
+                  </button>
+                </div>
                 <textarea
                   value={popupCommentText}
                   onChange={(e) => setPopupCommentText(e.target.value)}
-                  className="w-full text-xs border border-slate-200 rounded-lg p-3 h-32 focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans text-slate-700 leading-relaxed"
-                  placeholder="Điền nguyên nhân chủ quan hoặc khách quan giải trình mức biến động trên 10% tại đây..."
+                  className="w-full text-xs border border-slate-200 rounded-lg p-3 h-32 focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans text-slate-700 leading-relaxed bg-[#fcfdfd]"
+                  placeholder="Điền nguyên nhân chủ quan hoặc khách quan giải trình mức biến động trên 10% tại đây hoặc bấm nút gợi ý bằng AI phía trên..."
                 />
               </div>
             </div>
