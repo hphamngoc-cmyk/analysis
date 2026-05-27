@@ -1539,51 +1539,12 @@ export default function App() {
         const data = getCenterData(center.id);
         if (!data) return;
 
-        // SLIDE A: Figures Sheet Table
-        const dataSlide = pptx.addSlide();
-        dataSlide.background = { color: "FFFFFF" };
-
-        // Top Header Title and Subtitle in single layout
-        dataSlide.addText(`BÁO CÁO KẾT QUẢ KPI & HIỆU QUẢ TÀI CHÍNH - ${center.name.toUpperCase()}`, {
-          x: 0.5,
-          y: 0.3,
-          w: 6.5,
-          h: 0.4,
-          fontSize: 14,
-          bold: true,
-          color: primaryColor,
-          fontFace: fontMain,
-        });
-
-        dataSlide.addText(`Tài khóa ${selectedYear} • Trích xuất lũy kế ${selectedMonth} tháng đầu năm`, {
-          x: 0.5,
-          y: 0.65,
-          w: 6.5,
-          h: 0.3,
-          fontSize: 8.5,
-          color: "475569",
-          italic: true,
-          fontFace: fontMain,
-        });
-
-        dataSlide.addText("Đơn vị: Đồng (VND)", {
-          x: 7.0,
-          y: 0.35,
-          w: 2.5,
-          h: 0.3,
-          fontSize: 8.5,
-          color: "64748B",
-          align: "right",
-          bold: true,
-          fontFace: fontMain,
-        });
-
         // Initialize Table AOA matrix properly
-        const tableRowsData: any[] = [];
+        const allRows: any[] = [];
         const cellMargin = [0.02, 0.04, 0.02, 0.04]; // Extremely compact padding to prevent row overflow
 
         // Build elegant Column Headers row with compact sizing
-        tableRowsData.push([
+        const headerRow = [
           { text: "CHỈ TIÊU BÁO CÁO", options: { bold: true, color: "FFFFFF", fill: { color: primaryColor }, fontSize: 7.8, align: "left", margin: cellMargin } },
           { text: "THỰC HIỆN THÁNG", options: { bold: true, color: "FFFFFF", fill: { color: primaryColor }, fontSize: 7.8, align: "right", margin: cellMargin } },
           { text: "KẾ HOẠCH THÁNG", options: { bold: true, color: "FFFFFF", fill: { color: primaryColor }, fontSize: 7.8, align: "right", margin: cellMargin } },
@@ -1591,7 +1552,7 @@ export default function App() {
           { text: "LŨY KẾ KẾ HOẠCH (YTD)", options: { bold: true, color: "FFFFFF", fill: { color: primaryColor }, fontSize: 7.8, align: "right", margin: cellMargin } },
           { text: "CHÊNH LỆCH YTD", options: { bold: true, color: "FFFFFF", fill: { color: primaryColor }, fontSize: 7.8, align: "right", margin: cellMargin } },
           { text: "LỆCH % YTD", options: { bold: true, color: "FFFFFF", fill: { color: primaryColor }, fontSize: 7.8, align: "right", margin: cellMargin } },
-        ]);
+        ];
 
         const addRowToPPTXTable = (
           name: string,
@@ -1623,7 +1584,7 @@ export default function App() {
             }
           }
 
-          tableRowsData.push([
+          allRows.push([
             { text: name, options: { bold: isBold, fill: bgColor ? { color: bgColor } : undefined, fontSize, align: "left", border: cellBorder, margin: cellMargin } },
             { text: formatCurrency(rowVals.actualMonth), options: { bold: isBold, fill: bgColor ? { color: bgColor } : undefined, fontSize, align: "right", border: cellBorder, margin: cellMargin } },
             { text: formatCurrency(rowVals.budgetMonth), options: { bold: isBold, fill: bgColor ? { color: bgColor } : undefined, fontSize, align: "right", border: cellBorder, margin: cellMargin } },
@@ -1667,45 +1628,94 @@ export default function App() {
         // IV. EBITDA
         addRowToPPTXTable("IV. EBITDA", data.totals.ebitda, true, "EFF6FF", false);
 
-        // Mount structured table on slide
-        dataSlide.addTable(tableRowsData, {
-          x: 0.5,
-          y: 1.0,
-          w: 9.0,
-          rowH: 0.22,
-          colW: [2.7, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05],
-        });
+        // Pagination for Bảng số liệu - chunk allRows into pages
+        const maxRowsPerSlide = 15;
+        const totalPages = Math.ceil(allRows.length / maxRowsPerSlide);
+
+        for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+          const dataSlide = pptx.addSlide();
+          dataSlide.background = { color: "FFFFFF" };
+
+          const pageStr = totalPages > 1 ? ` (Trang ${pageIndex + 1}/${totalPages})` : "";
+
+          // Top Header Title and Subtitle
+          dataSlide.addText(`BÁO CÁO KẾT QUẢ KPI & HIỆU QUẢ TÀI CHÍNH - ${center.name.toUpperCase()}${pageStr}`, {
+            x: 0.5,
+            y: 0.3,
+            w: 6.5,
+            h: 0.4,
+            fontSize: 14,
+            bold: true,
+            color: primaryColor,
+            fontFace: fontMain,
+          });
+
+          dataSlide.addText(`Tài khóa ${selectedYear} • Trích xuất lũy kế ${selectedMonth} tháng đầu năm`, {
+            x: 0.5,
+            y: 0.65,
+            w: 6.5,
+            h: 0.3,
+            fontSize: 8.5,
+            color: "475569",
+            italic: true,
+            fontFace: fontMain,
+          });
+
+          dataSlide.addText("Đơn vị: Đồng (VND)", {
+            x: 7.0,
+            y: 0.35,
+            w: 2.5,
+            h: 0.3,
+            fontSize: 8.5,
+            color: "64748B",
+            align: "right",
+            bold: true,
+            fontFace: fontMain,
+          });
+
+          const chunk = allRows.slice(pageIndex * maxRowsPerSlide, (pageIndex + 1) * maxRowsPerSlide);
+          const slideTableData = [headerRow, ...chunk];
+
+          // Mount structured table chunk on slide
+          dataSlide.addTable(slideTableData, {
+            x: 0.5,
+            y: 1.0,
+            w: 9.0,
+            rowH: 0.22,
+            colW: [2.7, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05],
+          });
+        }
 
         // SLIDE B: Commentary and Variance Explanations
-        const commentSlide = pptx.addSlide();
-        commentSlide.background = { color: bgLight };
-
-        // Sub Header Title
-        commentSlide.addText(`GIẢI TRÌNH BIẾN ĐỘNG CHỈ TIÊU - ${center.name.toUpperCase()}`, {
-          x: 0.5,
-          y: 0.3,
-          w: 9.0,
-          h: 0.4,
-          fontSize: 14,
-          bold: true,
-          color: primaryColor,
-          fontFace: fontMain,
-        });
-
-        commentSlide.addText("Tổng hợp phân tích nguyên nhân biến động vượt ngưỡng cảnh báo 10% trong năm nay", {
-          x: 0.5,
-          y: 0.65,
-          w: 9.0,
-          h: 0.3,
-          fontSize: 8.5,
-          color: "475569",
-          italic: true,
-          fontFace: fontMain,
-        });
-
         const fluctuatedList = data.fluctuatedItems;
 
         if (fluctuatedList.length === 0) {
+          const commentSlide = pptx.addSlide();
+          commentSlide.background = { color: bgLight };
+
+          // Sub Header Title
+          commentSlide.addText(`GIẢI TRÌNH BIẾN ĐỘNG CHỈ TIÊU - ${center.name.toUpperCase()}`, {
+            x: 0.5,
+            y: 0.3,
+            w: 9.0,
+            h: 0.4,
+            fontSize: 14,
+            bold: true,
+            color: primaryColor,
+            fontFace: fontMain,
+          });
+
+          commentSlide.addText("Tổng hợp phân tích nguyên nhân biến động vượt ngưỡng cảnh báo 10% trong năm nay", {
+            x: 0.5,
+            y: 0.65,
+            w: 9.0,
+            h: 0.3,
+            fontSize: 8.5,
+            color: "475569",
+            italic: true,
+            fontFace: fontMain,
+          });
+
           // Centered happy placeholder
           commentSlide.addText("CHỈ TIÊU TỐT • KHÔNG CÓ BIẾN ĐỘNG VƯỢT NGƯỠNG", {
             x: 0.8,
@@ -1730,73 +1740,107 @@ export default function App() {
             fontFace: fontMain,
           });
         } else {
-          // Display up to 4 fluctuation entries in a beautiful grid of cards
-          const cWidth = 4.35;
-          const cHeight = 1.6;
-          const c1X = 0.5;
-          const c2X = 5.15;
-          const cStartY = 1.1;
-          const cRowGap = 1.75;
+          // Pagination for Commentary - Display all fluctuated items paginated (8 items per slide in a tight 4x2 grid)
+          const itemsPerPage = 8;
+          const totalCommPages = Math.ceil(fluctuatedList.length / itemsPerPage);
 
-          fluctuatedList.slice(0, 4).forEach((item, index) => {
-            const col = index % 2;
-            const rowIndex = Math.floor(index / 2);
-            const cardX = col === 0 ? c1X : c2X;
-            const cardY = cStartY + rowIndex * cRowGap;
+          for (let pDef = 0; pDef < totalCommPages; pDef++) {
+            const commentSlide = pptx.addSlide();
+            commentSlide.background = { color: bgLight };
 
-            const cKey = `${center.id}_${selectedYear}_${selectedMonth}_${item.id}`;
-            const cTextText = explanations[cKey] || "Chưa cập nhật nội dung giải trình nội bộ.";
+            const pageStr = totalCommPages > 1 ? ` (Trang ${pDef + 1}/${totalCommPages})` : "";
 
-            // Card Background block
-            commentSlide.addText("", {
-              x: cardX,
-              y: cardY,
-              w: cWidth,
-              h: cHeight,
-              fill: { color: "FFFFFF" },
-            });
-
-            // Card Header Text
-            commentSlide.addText(`${item.name} (${item.typeString})`, {
-              x: cardX + 0.15,
-              y: cardY + 0.1,
-              w: cWidth - 0.3,
-              h: 0.22,
-              fontSize: 9.5,
+            // Sub Header Title
+            commentSlide.addText(`GIẢI TRÌNH BIẾN ĐỘNG CHỈ TIÊU - ${center.name.toUpperCase()}${pageStr}`, {
+              x: 0.5,
+              y: 0.3,
+              w: 9.0,
+              h: 0.4,
+              fontSize: 14,
               bold: true,
-              color: "0F172A",
+              color: primaryColor,
               fontFace: fontMain,
             });
 
-            // Card metric pill
-            const varianceColor = item.variancePercent >= 0 ? "059669" : "DC2626";
-            commentSlide.addText(`Biến động YTD: ${item.variance >= 0 ? "+" : ""}${formatCurrency(item.variance)} | Tỷ lệ lệch: ${formatPercent(item.variancePercent)}`, {
-              x: cardX + 0.15,
-              y: cardY + 0.32,
-              w: cWidth - 0.3,
-              h: 0.22,
+            commentSlide.addText("Tổng hợp phân tích nguyên nhân biến động vượt ngưỡng cảnh báo 10% trong năm nay", {
+              x: 0.5,
+              y: 0.65,
+              w: 9.0,
+              h: 0.3,
               fontSize: 8.5,
-              bold: true,
-              color: varianceColor,
+              color: "475569",
+              italic: true,
               fontFace: fontMain,
             });
 
-            // Card text commentary
-            commentSlide.addText(`Giải trình: ${cTextText}`, {
-              x: cardX + 0.15,
-              y: cardY + 0.58,
-              w: cWidth - 0.3,
-              h: 0.9,
-              fontSize: 8.0,
-              color: explanations[cKey] ? "475569" : "94A3B8",
-              italic: !explanations[cKey],
-              fontFace: fontMain,
-              valign: "top",
-            });
-          });
+            const currentItems = fluctuatedList.slice(pDef * itemsPerPage, (pDef + 1) * itemsPerPage);
 
-          if (fluctuatedList.length > 4) {
-            commentSlide.addText(`* Lưu ý: Hiển thị tối đa 4 chỉ số có mức độ lệch cao nhất.`, {
+            const cWidth = 4.35;
+            const cHeight = 0.85;
+            const c1X = 0.5;
+            const c2X = 5.15;
+            const cStartY = 1.0;
+            const cRowGap = 0.95;
+
+            currentItems.forEach((item, index) => {
+              const col = index % 2;
+              const rowIndex = Math.floor(index / 2);
+              const cardX = col === 0 ? c1X : c2X;
+              const cardY = cStartY + rowIndex * cRowGap;
+
+              const cKey = `${center.id}_${selectedYear}_${selectedMonth}_${item.id}`;
+              const cTextText = explanations[cKey] || "Chưa cập nhật nội dung giải trình nội bộ.";
+
+              // Card Background block
+              commentSlide.addText("", {
+                x: cardX,
+                y: cardY,
+                w: cWidth,
+                h: cHeight,
+                fill: { color: "FFFFFF" },
+              });
+
+              // Card Header Text
+              commentSlide.addText(`${item.name} (${item.typeString})`, {
+                x: cardX + 0.15,
+                y: cardY + 0.06,
+                w: cWidth - 0.3,
+                h: 0.20,
+                fontSize: 9.0,
+                bold: true,
+                color: "0F172A",
+                fontFace: fontMain,
+              });
+
+              // Card metric pill
+              const varianceColor = item.variancePercent >= 0 ? "059669" : "DC2626";
+              commentSlide.addText(`Biến động YTD: ${item.variance >= 0 ? "+" : ""}${formatCurrency(item.variance)} | Tỷ lệ lệch: ${formatPercent(item.variancePercent)}`, {
+                x: cardX + 0.15,
+                y: cardY + 0.26,
+                w: cWidth - 0.3,
+                h: 0.18,
+                fontSize: 8.0,
+                bold: true,
+                color: varianceColor,
+                fontFace: fontMain,
+              });
+
+              // Card text commentary
+              commentSlide.addText(`Giải trình: ${cTextText}`, {
+                x: cardX + 0.15,
+                y: cardY + 0.44,
+                w: cWidth - 0.3,
+                h: 0.38,
+                fontSize: 7.5,
+                color: explanations[cKey] ? "475569" : "94A3B8",
+                italic: !explanations[cKey],
+                fontFace: fontMain,
+                valign: "top",
+              });
+            });
+
+            // Clean bottom footnote/legend
+            commentSlide.addText(`Hiển thị các chỉ số có biến động thực tế so với kế hoạch vượt ngưỡng kiểm soát 10%.`, {
               x: 0.5,
               y: 4.7,
               w: 9.0,
