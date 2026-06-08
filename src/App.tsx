@@ -370,10 +370,14 @@ export default function App() {
 
         if (r.subtype === "depreciation") {
           depr.actualMonth += r.actualMonth;
+          depr.budgetMonth += r.budgetMonth;
           depr.actualYTD += r.actualYTD;
+          depr.budgetYTD += r.budgetYTD;
         } else if (r.subtype === "interest") {
           interest.actualMonth += r.actualMonth;
+          interest.budgetMonth += r.budgetMonth;
           interest.actualYTD += r.actualYTD;
+          interest.budgetYTD += r.budgetYTD;
         }
       } else if (r.type === "variable_cost") {
         variable.actualMonth += r.actualMonth;
@@ -399,9 +403,9 @@ export default function App() {
 
     const ebitda = {
       actualMonth: profit.actualMonth + depr.actualMonth + interest.actualMonth,
-      budgetMonth: profit.budgetMonth + depr.actualMonth + interest.actualMonth,
+      budgetMonth: profit.budgetMonth + depr.budgetMonth + interest.budgetMonth,
       actualYTD: profit.actualYTD + depr.actualYTD + interest.actualYTD,
-      budgetYTD: profit.budgetYTD + depr.actualYTD + interest.actualYTD,
+      budgetYTD: profit.budgetYTD + depr.budgetYTD + interest.budgetYTD,
     };
 
     // Count indicators with poor performances (cost exceeding budget, or revenue missing budget)
@@ -464,11 +468,13 @@ export default function App() {
 
   const formatDraftCellValue = (valString: string) => {
     if (!valString || valString === "0") return "";
+    if (valString === "-") return "-";
+    const isNegative = valString.startsWith("-");
     const clean = valString.replace(/[^0-9]/g, "");
-    if (!clean) return "";
+    if (!clean) return isNegative ? "-" : "";
     const num = parseInt(clean, 10);
     if (isNaN(num)) return "";
-    return num.toLocaleString("vi-VN");
+    return (isNegative ? "-" : "") + num.toLocaleString("vi-VN");
   };
 
   // Helper to fetch fluctuated rows both from individual indicators and category totals
@@ -1079,7 +1085,16 @@ export default function App() {
   }, [selectedCenterId, selectedYear, indicators, financialData, currentTab]);
 
   const handleDraftGridCellChange = (indId: string, month: number, field: "actual" | "budget", val: string) => {
-    const cleanNum = val.replace(/[^0-9]/g, ""); // Only permit digits
+    // Keep digits and minus sign
+    let cleanNum = val.replace(/[^-0-9]/g, "");
+    // Ensure minus sign can only be at the beginning
+    if (cleanNum.includes("-")) {
+      const isNegative = val.startsWith("-");
+      cleanNum = cleanNum.replace(/-/g, "");
+      if (isNegative) {
+        cleanNum = "-" + cleanNum;
+      }
+    }
     setDraftGrid((prev) => ({
       ...prev,
       [indId]: {
@@ -1413,10 +1428,14 @@ export default function App() {
 
         if (r.subtype === "depreciation") {
           depr.actualMonth += r.actualMonth;
+          depr.budgetMonth += r.budgetMonth;
           depr.actualYTD += r.actualYTD;
+          depr.budgetYTD += r.budgetYTD;
         } else if (r.subtype === "interest") {
           interest.actualMonth += r.actualMonth;
+          interest.budgetMonth += r.budgetMonth;
           interest.actualYTD += r.actualYTD;
+          interest.budgetYTD += r.budgetYTD;
         }
       } else if (r.type === "variable_cost") {
         variable.actualMonth += r.actualMonth;
@@ -1442,9 +1461,9 @@ export default function App() {
 
     const ebitda = {
       actualMonth: profit.actualMonth + depr.actualMonth + interest.actualMonth,
-      budgetMonth: profit.budgetMonth + depr.actualMonth + interest.actualMonth,
+      budgetMonth: profit.budgetMonth + depr.budgetMonth + interest.budgetMonth,
       actualYTD: profit.actualYTD + depr.actualYTD + interest.actualYTD,
-      budgetYTD: profit.budgetYTD + depr.actualYTD + interest.actualYTD,
+      budgetYTD: profit.budgetYTD + depr.budgetYTD + interest.budgetYTD,
     };
 
     const fluctuatedList: Array<{
